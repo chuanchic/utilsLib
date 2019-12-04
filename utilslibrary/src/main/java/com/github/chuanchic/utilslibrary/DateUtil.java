@@ -115,4 +115,63 @@ public class DateUtil {
         }
     }
 
+    /**
+     * 获取当前日期
+     */
+    public static String getCurrentDate(String connector){
+        String currentDate = null;
+        try {
+            Calendar mCalendar = Calendar.getInstance();
+            int year = mCalendar.get(Calendar.YEAR);
+            int month = mCalendar.get(Calendar.MONTH) + 1;
+            int day = mCalendar.get(Calendar.DAY_OF_MONTH);
+            currentDate = formateDate(year, month, day, connector);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return currentDate;
+    }
+
+    /**
+     * 获取最近日期
+     */
+    public static String[] getRecentDate(int dayCount, String connector){
+        String[] date = new String[2];
+        try {
+            Calendar mCalendar = Calendar.getInstance();
+            //结束日期：当前日期
+            int endYear = mCalendar.get(Calendar.YEAR);
+            int endMonth = mCalendar.get(Calendar.MONTH) + 1;
+            int endDay = mCalendar.get(Calendar.DAY_OF_MONTH);
+            date[1] = formateDate(endYear, endMonth, endDay, connector);
+            //开始日期：往前推多少天
+            mCalendar.add(Calendar.DAY_OF_MONTH, -dayCount);
+            int startYear = mCalendar.get(Calendar.YEAR);
+            int startMonth = mCalendar.get(Calendar.MONTH) + 1;
+            int startDay = mCalendar.get(Calendar.DAY_OF_MONTH);
+            date[0] = formateDate(startYear, startMonth, startDay, connector);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return date;
+    }
+
+    /**
+     * 格式化日期
+     */
+    public static String formateDate(int year, int month, int day, String connector){
+        String date = null;
+        if(month < 10){
+            date = year + connector + "0" + month;
+        }else{
+            date = year + connector + month;
+        }
+        if(day < 10){
+            date = date + connector + "0" + day;
+        }else{
+            date = date + connector + day;
+        }
+        return date;
+    }
+
 }
