@@ -13,11 +13,10 @@ public class PublicUtil {
      * 验证手机号
      */
     public static boolean isPhoneNum(String phoneNum) {
-        if (TextUtils.isEmpty(phoneNum)){
-            return false;
+        if(!TextUtils.isEmpty(phoneNum) && phoneNum.startsWith("1") && phoneNum.length() == 11){
+            return true;
         }
-        String phoneRegex = "[1][3456789]\\d{9}";
-        return phoneNum.matches(phoneRegex);
+        return false;
     }
 
     /**
