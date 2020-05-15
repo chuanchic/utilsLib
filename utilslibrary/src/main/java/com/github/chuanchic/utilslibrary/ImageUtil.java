@@ -1,13 +1,18 @@
 package com.github.chuanchic.utilslibrary;
 
+import android.content.ContentResolver;
 import android.content.Context;
-import android.content.res.Resources;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Base64;
+import android.view.View;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -28,45 +33,46 @@ public class ImageUtil {
 		return outOptions;
 	}
 
-	public static BitmapFactory.Options getBitmapFactoryOptions(Context context, int res, int thumbWidth, int extraScaling){
-		Resources resources = context.getResources();
-		BitmapFactory.Options outOptions = new BitmapFactory.Options();
-		outOptions.inJustDecodeBounds = true;// 设置该属性为true，不加载图片到内存，只返回图片的宽高到options中
+	public static BitmapFactory.Options getBitmapFactoryOptions(Context context, int res, int reqWidth, int reqHeight){
+		BitmapFactory.Options options = new BitmapFactory.Options();
+		options.inJustDecodeBounds = true;// 设置该属性为true，不加载图片到内存，只返回图片的宽高到options中
 		try {
-			BitmapFactory.decodeResource(resources, res, outOptions);
+			BitmapFactory.decodeResource(context.getResources(), res, options);
 		} catch (Throwable t) {
 			t.printStackTrace();
 		}
-		if (outOptions.outWidth > thumbWidth) {
-			outOptions.inSampleSize = outOptions.outWidth / thumbWidth + 1 + extraScaling;
-			outOptions.outWidth = thumbWidth;
-			outOptions.outHeight = outOptions.outHeight / outOptions.inSampleSize;
-		}
-		outOptions.inJustDecodeBounds = false;// 重新设置该属性为false，加载图片返回
-		outOptions.inPurgeable = true;
-		outOptions.inInputShareable = true;
-		outOptions.inPreferredConfig = Bitmap.Config.RGB_565;
-		return outOptions;
+		setBitmapFactoryOptions(options, reqWidth, reqHeight);
+		return options;
 	}
 
-	public static BitmapFactory.Options getBitmapFactoryOptions(String imagePath, int thumbWidth, int extraScaling){
-		BitmapFactory.Options outOptions = new BitmapFactory.Options();
-		outOptions.inJustDecodeBounds = true;// 设置该属性为true，不加载图片到内存，只返回图片的宽高到options中
+	public static BitmapFactory.Options getBitmapFactoryOptions(String imagePath, int reqWidth, int reqHeight){
+		BitmapFactory.Options options = new BitmapFactory.Options();
+		options.inJustDecodeBounds = true;// 设置该属性为true，不加载图片到内存，只返回图片的宽高到options中
 		try {
-			BitmapFactory.decodeFile(imagePath, outOptions);
+			BitmapFactory.decodeFile(imagePath, options);
 		} catch (Throwable t) {
 			t.printStackTrace();
 		}
-		if (outOptions.outWidth > thumbWidth) {
-			outOptions.inSampleSize = outOptions.outWidth / thumbWidth + 1 + extraScaling;
-			outOptions.outWidth = thumbWidth;
-			outOptions.outHeight = outOptions.outHeight / outOptions.inSampleSize;
+		setBitmapFactoryOptions(options, reqWidth, reqHeight);
+		return options;
+	}
+
+	public static void setBitmapFactoryOptions(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+		int inSampleSize = 1;
+		int originalWidth = options.outWidth;
+		int originalHeight = options.outHeight;
+		if (originalWidth > reqWidth || originalHeight > reqHeight) {
+			int halfWidth = originalWidth / 2;
+			int halfHeight = originalHeight / 2;
+			while ((halfWidth / inSampleSize > reqWidth) && (halfHeight / inSampleSize > reqHeight)) {
+				inSampleSize *= 2;
+			}
 		}
-		outOptions.inJustDecodeBounds = false;// 重新设置该属性为false，加载图片返回
-		outOptions.inPurgeable = true;
-		outOptions.inInputShareable = true;
-		outOptions.inPreferredConfig = Bitmap.Config.RGB_565;
-		return outOptions;
+		options.inSampleSize =  inSampleSize;
+		options.inJustDecodeBounds = false;// 重新设置该属性为false，加载图片返回
+		options.inPurgeable = true;
+		options.inInputShareable = true;
+		options.inPreferredConfig = Bitmap.Config.RGB_565;
 	}
 
 	/**
@@ -100,16 +106,14 @@ public class ImageUtil {
 
 	/**
 	 * 获取图片
-	 * @param res 资源文件drawable
 	 */
 	public static Bitmap getBitmap(Context context, int res) {
 		if(context == null || res <= 0){
 			return null;
 		}
 		try {
-			Resources resources = context.getResources();
-			BitmapFactory.Options outOptions = getBitmapFactoryOptions();
-			return BitmapFactory.decodeResource(resources, res, outOptions);
+			BitmapFactory.Options options = getBitmapFactoryOptions();
+			return BitmapFactory.decodeResource(context.getResources(), res, options);
 		} catch (Throwable t) {
 			t.printStackTrace();
 		}
@@ -118,15 +122,14 @@ public class ImageUtil {
 
 	/**
 	 * 获取图片
-	 * @param path 图片的路径
 	 */
 	public static Bitmap getBitmap(String path) {
 		if (TextUtils.isEmpty(path)) {
 			return null;
 		}
 		try {
-			BitmapFactory.Options outOptions = getBitmapFactoryOptions();
-			return BitmapFactory.decodeFile(path, outOptions);
+			BitmapFactory.Options options = getBitmapFactoryOptions();
+			return BitmapFactory.decodeFile(path, options);
 		} catch (Throwable t) {
 			t.printStackTrace();
 		}
@@ -134,19 +137,15 @@ public class ImageUtil {
 	}
 
 	/**
-	 * 获取图片的缩略图
-	 * @param res 资源文件drawable
-	 * @param thumbWidth 缩略图的宽
-	 * @param extraScaling 额外可以加的缩放比例
+	 * 获取图片
 	 */
-	public static Bitmap getThumbBitmap(Context context, int res, int thumbWidth, int extraScaling) {
+	public static Bitmap getBitmap(Context context, int res, int reqWidth, int reqHeight) {
 		if(context == null || res <= 0){
 			return null;
 		}
 		try {
-			Resources resources = context.getResources();
-			BitmapFactory.Options outOptions = getBitmapFactoryOptions(context, res, thumbWidth, extraScaling);
-			return BitmapFactory.decodeResource(resources, res, outOptions);
+			BitmapFactory.Options options = getBitmapFactoryOptions(context, res, reqWidth, reqHeight);
+			return BitmapFactory.decodeResource(context.getResources(), res, options);
 		} catch (Throwable t) {
 			t.printStackTrace();
 		}
@@ -154,18 +153,15 @@ public class ImageUtil {
 	}
 
 	/**
-	 * 获取图片的缩略图
-	 * @param path 图片的路径
-	 * @param thumbWidth 缩略图的宽
-	 * @param extraScaling 额外可以加的缩放比例
+	 * 获取图片
 	 */
-	public static Bitmap getThumbBitmap(String path, int thumbWidth, int extraScaling) {
+	public static Bitmap getBitmap(String path, int reqWidth, int reqHeight) {
 		if (TextUtils.isEmpty(path)) {
 			return null;
 		}
 		try {
-			BitmapFactory.Options outOptions = getBitmapFactoryOptions(path, thumbWidth, extraScaling);
-			return BitmapFactory.decodeFile(path, outOptions);
+			BitmapFactory.Options options = getBitmapFactoryOptions(path, reqWidth, reqHeight);
+			return BitmapFactory.decodeFile(path, options);
 		} catch (Throwable t) {
 			t.printStackTrace();
 		}
@@ -286,4 +282,44 @@ public class ImageUtil {
 		bitmap.compress(format, quality, baos);
 		return Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT);
 	}
+
+	/**
+	 * 更新系统图库
+	 */
+	public static void updateMediaStore(Context context, File file){
+		if(context == null || file == null || !file.exists()){
+			return;
+		}
+		try {//把文件插入到系统图库
+			ContentResolver cr = context.getContentResolver();
+			MediaStore.Images.Media.insertImage(cr, file.getAbsolutePath(), file.getName(), null);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		//最后通知图库更新
+		Uri uri = Uri.parse(file.getAbsolutePath());
+		Intent intent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri);
+		context.sendBroadcast(intent);
+	}
+
+	/**
+	 * 截屏
+	 */
+	public static Bitmap screenShot(View view){
+		if(view == null){
+			return null;
+		}
+
+		//创建bitmap
+		int width = view.getMeasuredWidth();
+		int height = view.getMeasuredHeight();
+		Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+
+		//使用Canvas，调用View控件的onDraw方法，绘制图片
+		Canvas canvas = new Canvas(bitmap);
+		view.draw(canvas);
+
+		return bitmap;
+	}
+
 }
