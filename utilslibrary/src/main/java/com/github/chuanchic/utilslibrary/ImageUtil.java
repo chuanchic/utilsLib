@@ -57,6 +57,26 @@ public class ImageUtil {
 		return options;
 	}
 
+	public static BitmapFactory.Options getBitmapFactoryOptions(String imagePath){
+		BitmapFactory.Options options = new BitmapFactory.Options();
+		options.inJustDecodeBounds = true;// 设置该属性为true，不加载图片到内存，只返回图片的宽高到options中
+		try {
+			BitmapFactory.decodeFile(imagePath, options);
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
+
+		int halfWidth = options.outWidth;
+		int halfHeight = options.outHeight;
+		while (halfWidth > 800 && halfHeight > 800){
+			halfWidth = halfWidth / 2;
+			halfHeight = halfHeight / 2;
+		}
+
+		setBitmapFactoryOptions(options, halfWidth, halfHeight);
+		return options;
+	}
+
 	public static void setBitmapFactoryOptions(BitmapFactory.Options options, int reqWidth, int reqHeight) {
 		int inSampleSize = 1;
 		int originalWidth = options.outWidth;
@@ -137,6 +157,22 @@ public class ImageUtil {
 	}
 
 	/**
+	 * 获取 指定大小的 图片
+	 */
+	public static Bitmap getSpecialBitmap(String path) {
+		if (TextUtils.isEmpty(path)) {
+			return null;
+		}
+		try {
+			BitmapFactory.Options options = getBitmapFactoryOptions(path);
+			return BitmapFactory.decodeFile(path, options);
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
+		return null;
+	}
+
+	/**
 	 * 获取图片
 	 */
 	public static Bitmap getBitmap(Context context, int res, int reqWidth, int reqHeight) {
@@ -172,6 +208,12 @@ public class ImageUtil {
 	 * 图片缩放
 	 */
 	public static Bitmap zoomBitmap(Bitmap bitmap, float newWidth, float newHeight) {
+		if(bitmap == null){
+			return null;
+		}
+		if(newWidth <= 0 || newHeight <= 0){
+			return bitmap;
+		}
 		float width = bitmap.getWidth();
 		float height = bitmap.getHeight();
 		float scaleWidth = ((float) newWidth) / width;
