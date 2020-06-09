@@ -105,8 +105,32 @@ public class ImageUtil {
 	/**
 	 * 保存bitmap
 	 */
+	public static void saveBitmapIgnoreExists(Bitmap bitmap, File file){
+		saveBitmapIgnoreExists(bitmap, file, Bitmap.CompressFormat.JPEG, 60);
+	}
+
+	/**
+	 * 保存bitmap
+	 */
 	public static void saveBitmap(Bitmap bitmap, File file, Bitmap.CompressFormat format, int quality){
-		if (bitmap == null || file == null || file.exists()){
+		saveBitmap(bitmap, file, format, quality, true);
+	}
+
+	/**
+	 * 保存bitmap
+	 */
+	public static void saveBitmapIgnoreExists(Bitmap bitmap, File file, Bitmap.CompressFormat format, int quality){
+		saveBitmap(bitmap, file, format, quality, false);
+	}
+
+	/**
+	 * 保存bitmap
+	 */
+	public static void saveBitmap(Bitmap bitmap, File file, Bitmap.CompressFormat format, int quality, boolean judgeExists){
+		if (bitmap == null || file == null){
+			return;
+		}
+		if(judgeExists && file.exists()){
 			return;
 		}
 		FileOutputStream fos = null;
