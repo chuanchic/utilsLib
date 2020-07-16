@@ -229,7 +229,7 @@ public class ImageUtil {
 	}
 
 	/**
-	 * 图片缩放
+	 * 图片缩放（固定比例）
 	 */
 	public static Bitmap zoomBitmap(Bitmap bitmap, float newWidth, float newHeight) {
 		if(bitmap == null){
@@ -238,13 +238,29 @@ public class ImageUtil {
 		if(newWidth <= 0 || newHeight <= 0){
 			return bitmap;
 		}
-		float width = bitmap.getWidth();
-		float height = bitmap.getHeight();
-		float scaleWidth = ((float) newWidth) / width;
-		float scaleHeight = ((float) newHeight) / height;
+		float oriWidth = bitmap.getWidth();
+		float oriHeight = bitmap.getHeight();
 		Matrix matrix = new Matrix();
-		matrix.postScale(scaleWidth, scaleHeight);// 缩放图片
-		return Bitmap.createBitmap(bitmap, 0, 0, (int) width, (int) height, matrix, true);
+		matrix.postScale(newWidth / oriWidth, newHeight / oriHeight);// 缩放图片
+		return Bitmap.createBitmap(bitmap, 0, 0, (int) oriWidth, (int) oriHeight, matrix, true);
+	}
+
+	/**
+	 * 图片缩放（等比例）
+	 */
+	public static Bitmap zoomBitmap(Bitmap bitmap, float newWidth) {
+		if(bitmap == null){
+			return null;
+		}
+		if(newWidth <= 0){
+			return bitmap;
+		}
+		float oriWidth = bitmap.getWidth();
+		float oriHeight = bitmap.getHeight();
+		float newHeight = oriHeight * newWidth / oriWidth;
+		Matrix matrix = new Matrix();
+		matrix.postScale(newWidth / oriWidth, newHeight / oriHeight);// 缩放图片
+		return Bitmap.createBitmap(bitmap, 0, 0, (int) oriWidth, (int) oriHeight, matrix, true);
 	}
 
 	/**
