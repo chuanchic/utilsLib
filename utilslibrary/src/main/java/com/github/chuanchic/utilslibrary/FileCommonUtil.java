@@ -437,14 +437,21 @@ public class FileCommonUtil {
      * 清除app缓存
      */
     private static void cleanAppCache(Context context){
-        deleteFile(context.getApplicationContext().getCacheDir());
-        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
-            deleteFile(context.getApplicationContext().getExternalCacheDir());
+        if(context == null){
+            return;
         }
-//        String packageName = BaseApplication.getInstance().getPackageName();
-//        deleteFilesByDirectory(new File("/data/data/" + packageName + "/databases"));
-//        deleteFilesByDirectory(new File("/data/data/" + packageName + "/shared_prefs"));
-//        deleteFilesByDirectory(BaseApplication.getInstance().getFilesDir());
+
+        //删除内部数据
+        deleteFile(context.getCacheDir());
+        deleteFile(context.getFilesDir());
+        deleteFile(new File("/data/data/" + context.getPackageName() + "/databases"));
+//        deleteFile(new File("/data/data/" + context.getPackageName() + "/shared_prefs"));
+
+        //删除外部数据
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+            deleteFile(context.getExternalCacheDir());
+            deleteFile(context.getExternalFilesDir(null));
+        }
     }
 
     /**
