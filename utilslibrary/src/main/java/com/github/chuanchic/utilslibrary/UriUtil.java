@@ -2,6 +2,7 @@ package com.github.chuanchic.utilslibrary;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
@@ -18,6 +19,29 @@ import java.io.File;
  * Uri处理工具
  */
 public class UriUtil {
+
+    public static Uri getImageUri(Context context, String imagePath) {
+        Uri contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+        String[] projection = new String[] { MediaStore.Images.Media._ID };
+        String selection = MediaStore.Images.Media.DATA + "=? ";
+        String[] selectionArgs = new String[] { imagePath };
+
+        Cursor cursor = context.getContentResolver().query(contentUri, projection, selection, selectionArgs, null);
+        if (cursor != null && cursor.moveToFirst()) {
+            int id = cursor.getInt(cursor.getColumnIndex(MediaStore.MediaColumns._ID));
+            cursor.close();
+            return ContentUris.withAppendedId(contentUri, id);
+        } else {
+            // 如果图片不在手机的共享图片数据库，就先把它插入
+            if (new File(imagePath).exists()) {
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Images.Media.DATA, imagePath);
+                return context.getContentResolver().insert(contentUri, values);
+            } else {
+                return null;
+            }
+        }
+    }
 
     /**
      * 创建Uri

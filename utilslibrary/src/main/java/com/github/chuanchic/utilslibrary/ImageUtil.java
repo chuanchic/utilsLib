@@ -1,23 +1,31 @@
 package com.github.chuanchic.utilslibrary;
 
+import android.app.Activity;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.view.View;
 
+import com.github.chuanchic.utilslibrary.threadutil.FileProxy;
+import com.github.chuanchic.utilslibrary.threadutil.SingleThreadProxy;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * 图片操作类
@@ -366,25 +374,6 @@ public class ImageUtil {
 	}
 
 	/**
-	 * 更新系统图库
-	 */
-	public static void updateMediaStore(Context context, File file){
-		if(context == null || file == null || !file.exists()){
-			return;
-		}
-		try {//把文件插入到系统图库
-			ContentResolver cr = context.getContentResolver();
-			MediaStore.Images.Media.insertImage(cr, file.getAbsolutePath(), file.getName(), null);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		//最后通知图库更新
-		Uri uri = Uri.parse(file.getAbsolutePath());
-		Intent intent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri);
-		context.sendBroadcast(intent);
-	}
-
-	/**
 	 * 截屏
 	 */
 	public static Bitmap screenShot(View view){
@@ -402,6 +391,85 @@ public class ImageUtil {
 		view.draw(canvas);
 
 		return bitmap;
+	}
+
+	/**
+	 * 保存图片的回调
+	 */
+	public interface SaveBitmapCallback {
+		void onResult(String uriString);
+	}
+
+	/**
+	 * 保存图片到本地
+	 * @param activity 上下文
+	 * @param imgStr 图片描述
+	 * @param bitmap 图片数据
+	 * @param callback 回调
+	 */
+	public static void saveBitmap(final Activity activity, final String imgStr, final Bitmap bitmap, final SaveBitmapCallback callback){
+		FileProxy.getInstance().addProxyRunnable(new SingleThreadProxy.ProxyRunnable() {
+			@Override
+			public void run() {
+				String uriString = null;
+				if(activity == null || TextUtils.isEmpty(imgStr) || bitmap == null){
+				}else{
+					String displayName = MD5Util.md5(imgStr) + ".jpeg";
+					ContentValues values = new ContentValues();
+					values.put(MediaStore.MediaColumns.DISPLAY_NAME, displayName);
+					values.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
+					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+						values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DCIM);
+					} else {
+						String external = Environment.getExternalStorageDirectory().getAbsolutePath();
+						String dataPath = external + "/" + Environment.DIRECTORY_DCIM + "/" + displayName;
+						values.put(MediaStore.MediaColumns.DATA, dataPath);
+					}
+
+					ContentResolver contentResolver = activity.getContentResolver();
+					Uri uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+					try {
+						OutputStream outputStream = contentResolver.openOutputStream(uri);
+						if (outputStream != null) {
+							bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+							outputStream.close();
+							uriString = uri.toString();
+						}
+					}catch (Exception e){
+					}
+				}
+				final String uriTemp = uriString;
+				activity.runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						if(callback != null){
+							callback.onResult(uriTemp);
+						}
+					}
+				});
+			}
+		});
+	}
+
+	/**
+	 * 通过 uri 获取图片
+	 * @param context 上下文
+	 * @param uri 图片uri
+	 * @return bitmap
+	 */
+	public static Bitmap getBitmapFromUri(Context context, Uri uri) {
+		if(context == null || uri == null){
+			return null;
+		}
+		try {
+			ParcelFileDescriptor pfd = context.getContentResolver().openFileDescriptor(uri, "r");
+			Bitmap bitmap = BitmapFactory.decodeFileDescriptor(pfd.getFileDescriptor());
+			pfd.close();
+			return bitmap;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 }
